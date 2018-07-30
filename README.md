@@ -40,3 +40,11 @@ Discrete laplace approximation
 Emboss
 
 ![An embossed crab hat](/images/emboss.jpg)
+
+Roberts
+
+![A differed edge detected crab hat](/images/roberts.jpg)
+
+Prewitt
+
+![Another edge detected crab hat](/images/prewitt.jpg)
