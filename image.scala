@@ -57,6 +57,20 @@ class kernel(){
     out
   }
 
+  def emboss(in: BufferedImage): BufferedImage ={
+    kw = 3
+    kh = 3
+    k = Array.ofDim[Double](kw, kh)
+
+    k(0) = Array(-2.0, -1.0, 0.0)
+    k(1) = Array(-1.0, 1.0, 1.0)
+    k(2) = Array(0.0, 1.0, 2.0)
+
+    val out = this.convolve(in)
+
+    out
+  }
+
   //discrete approximation of laplacian
   def laplace(in: BufferedImage): BufferedImage={
     kw = 3
@@ -171,6 +185,9 @@ object image extends App{
 
   out = ker.laplace(photo)
   ImageIO.write(out, "jpg", new File(myPhotoPath.concat("laplace.jpg")))
+
+  out = ker.emboss(photo)
+  ImageIO.write(out, "jpg", new File(myPhotoPath.concat("emboss.jpg")))
 
   //quick util for checking directories
   def listdirectory(dir: String): List[File] ={
