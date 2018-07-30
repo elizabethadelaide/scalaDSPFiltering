@@ -12,11 +12,15 @@ class kernel(){
 
   //box blur
   //1/9 * [1 1 1 \ 1 1 1 \ 1 1 1]
-  def boxblur(size:Int, in: BufferedImage): BufferedImage ={
+  def boxblur(in: BufferedImage): BufferedImage={
+    boxblur(in, 3) //default size is 3
+  }
+
+  def boxblur(in: BufferedImage, size:Int): BufferedImage ={
     //init array
     kw = size
     kh = size
-    scale = 1.0
+    scale = 1.0 //handles size with coeff
     k = Array.ofDim[Double](kw, kh)
 
     val coeff = 1.0 / (kw*kw)
@@ -166,9 +170,27 @@ class kernel(){
     out
   }
 
+  def customKernel(in:BufferedImage, kern: Array[Array[Double]]): BufferedImage={
+    kw = kern.length
+    kh = kern(0).length
+    if (kw != kh)
+      println("Warning: non-square convolution matrix")
+
+    k = kern
+    scale = 0
+    for (x <- 0 until kw)
+      for (y <- 0 until kh)
+        scale += kern(x)(y) //set scale
+
+    convolve(in)
+
+  }
+
   //quick square function:
   def sqr(in:Int):Double={(in*in)}
 
+  //do convolution of image and kernel
+  //for larger kernels, can do an FIT
   def convolve(in: BufferedImage): BufferedImage={
     val w = in.getWidth //get img properties
     val h = in.getHeight
@@ -188,28 +210,34 @@ class kernel(){
         var Bsum = 0.0
         for (a <- 0 until kw) {
           for (b <- 0 until kh) {
-            val c = x + a - (kw - 1) / 2
+            val c = x + a - (kw - 1) / 2 //corresponding image coordinates
             val d = y + b - (kh - 1) / 2
             //make sure everything is in bounds:
             if (!(c < 0 || c >= w || d < 0 || d >= h)) {
-              val data = in.getRGB(c, d)
-              val coefficient = k(a)(b)
-              val B = data & 0xff //use bitwise operations based on buffereimage (ignore alpha)
+              val data = in.getRGB(c, d) //get image data
+              val coefficient = k(a)(b) //get kernel data
+              val B = data & 0xff //use bitwise operations based on buffered image (ignore alpha)
               val G = (data & 0xff00) >> 8
               val R = (data & 0xff0000) >> 16
-              Rsum += R * coefficient
+              Rsum += R * coefficient //combine kernel and image data
               Gsum += G * coefficient
               Bsum += B * coefficient
             }
+            /*
+            else{
+              //could do out of bound stuff here or wrapping...
+            }
+             */
           }
         }
-        Rsum = mask(Rsum)  << 16 //recombine RGB
-        Gsum = mask(Gsum) << 8
-        val sum = Rsum + Gsum + mask(Bsum) //when more complicated kernels are added, a scale factor needs to be added here
-        out.setRGB(x, y, sum.toInt)
+        //recombine RGB, mask handles scaling and type:
+        val sum =  (mask(Rsum)  << 16) + (mask(Gsum) << 8) + mask(Bsum)
+        //set output image pixel:
+        out.setRGB(x, y, sum)
       }
     }
 
+    //return convolved image
     out
   }
 
@@ -219,7 +247,7 @@ class kernel(){
 
   //make sure RGB values are in range
   def mask(valuein: Double, max: Int):Int={
-    val myValue = (valuein / scale).toInt
+    val myValue = (valuein / scale).toInt //handle scaling and typing
 
     if (myValue > max)
       max
@@ -231,11 +259,11 @@ class kernel(){
 
 }
 
-//object for
+//object runs through example processing
 object image extends App{
 
   val myPhotoPath = "C:\\Users\\liz\\Documents\\Programs\\imageProcessing\\" //directory to process
-  val photo = ImageIO.read(new File(myPhotoPath.concat("funhat.jpg"))) //image to process
+  val photo = ImageIO.read(new File(myPhotoPath.concat("funhat.png"))) //image to process
 
   printf("Photo size is %d x %d\n", photo.getWidth, photo.getHeight)
 
@@ -245,7 +273,7 @@ object image extends App{
   var out = ker.edgeDetection(photo)
   ImageIO.write(out, "jpg", new File(myPhotoPath.concat("edgeDetection.jpg")))
 
-  out = ker.boxblur(9, photo)
+  out = ker.boxblur(photo, 9)
   ImageIO.write(out, "jpg", new File(myPhotoPath.concat("boxblur.jpg")))
 
   out = ker.sharpen(photo)
@@ -262,6 +290,19 @@ object image extends App{
 
   out = ker.prewitt(photo)
   ImageIO.write(out, "jpg", new File(myPhotoPath.concat("prewitt.jpg")))
+
+  //custom kernel example:
+  //(Gaussian 5x5 blur
+  var myArray = Array.ofDim[Double](5, 5)
+
+  myArray(0) = Array(1.0, 4.0, 6.0, 4.0, 1.0)
+  myArray(1) = Array(4.0, 16.0, 24.0, 16.0, 4.0)
+  myArray(2) = Array(6.0, 24.0, 36.0, 24.0, 6.0)
+  myArray(3) = myArray(1)
+  myArray(4) = myArray(0)
+
+  out = ker.customKernel(photo, myArray)
+  ImageIO.write(out, "jpg", new File(myPhotoPath.concat("gaussian.jpg")))
 
   //quick util for checking directories
   def listdirectory(dir: String): List[File] ={
