@@ -36,3 +36,7 @@ Sharpened
 Discrete laplace approximation
 
 ![A kinda faded fun crab hat](/images/laplace.jpg)
+
+Emboss
+
+![An embossed crab hat](/images/emboss.jpg)
