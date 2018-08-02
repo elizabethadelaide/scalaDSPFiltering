@@ -85,6 +85,6 @@ BufferedImage outputPhoto = kernel.customKernel(BufferedImage inputPhoto, Array[
 
 ![A blurry Botticelli painting](/images/gaussian.jpg)
 
-Color - Each RGB channel is filtered independenetly. This example is a laplace transformation
+Color - Each RGB channel is filtered independently. This example is a laplace transformation
 
 ![A kinda faded Botticelli painting](/images/color.jpg)
