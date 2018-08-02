@@ -184,8 +184,8 @@ class kernel(){
       getMagnitudeColor(A, B)
     }
     else{ //invalid color mode
-      println("Error: Colormode can only be 'grayscale' or 'color'")
-      A //don't get the magnitude, throw out A
+      Console.err.println("Error: Colormode can only be 'grayscale' or 'color'")
+      new BufferedImage(0, 0, BufferedImage.TYPE_BYTE_GRAY)//don't get the magnitude, throw out a null image
     }
   }
 
@@ -271,7 +271,7 @@ class kernel(){
       convolveColor(in)
     }
     else{ //invalid color mode
-      println("Error: Colormode can only be 'grayscale' or 'color'")
+      Console.err.println("Error: Colormode can only be 'grayscale' or 'color'")
       in //don't filter anything
     }
   }
@@ -298,16 +298,13 @@ class kernel(){
   def convolveGray(in: BufferedImage): BufferedImage={
     //used for imaage detection
 
-    //keeps output image format as RGB
-    //this is less efficient, but allows filters to be stacked easier
     val w = in.getWidth
     val h = in.getHeight
 
     //output image
     val out = new BufferedImage(w, h, BufferedImage.TYPE_BYTE_GRAY)
-    val rasterOut = out.getRaster()
-    val raster = in.getData() //use raster to get data at each point of image
-    val pixel:Object = null // pixel initialized on first invocation of getDataElements
+    val rasterOut = out.getRaster() //writable raster
+    val rasterIn = in.getData() //use readable raster to get data at each point of image
     //convolution algorithm
     for (x <- 0 until w) {
       for (y <- 0 until h) {
@@ -318,7 +315,7 @@ class kernel(){
             val d = y + b - (kh - 1) / 2
             //make sure everything is in bounds:
             if (!(c < 0 || c >= w || d < 0 || d >= h)) {
-              val data = raster.getSample(c, d, 0) & 0xff
+              val data = rasterIn.getSample(c, d, 0) & 0xff
               val coefficient = k(a)(b)
               accum += coefficient*data.toDouble
             }
