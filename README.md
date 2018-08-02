@@ -19,68 +19,72 @@ Also contains an Image object for testing.
 
 Input image
 
-![A regular fun crab hat](/images/funhat.jpg)
+![A Botticelli painting](/images/flowers.jpg)
 
 Box blur
 
 ```
-BufferedImage outputPhoto = kernel.boxblur(BufferedImage inputPhoto, [Int sizeOfKernel])
+BufferedImage outputPhoto = kernel.boxblur(BufferedImage inputPhoto, [Int sizeOfKernel], [String "grayscale"|"color"])
 ```
 
-![A blurry fun crab hat](/images/boxblur.jpg)
+![A blurry Botticelli painting](/images/boxblur.jpg)
 
 Edge detection
 
 ```
-BufferedImage outputPhoto = kernel.edgedetection(BufferedImage inputPhoto)
+BufferedImage outputPhoto = kernel.edgedetection(BufferedImage inputPhoto, [String "grayscale"|"color"])
 ```
 
-![An outlined fun crab hat](/images/edgeDetection.jpg)
+![An outlined Botticelli painting](/images/edgeDetection.jpg)
 
 Sharpened
 
 ```
-BufferedImage outputPhoto = kernel.sharpen(BufferedImage inputPhoto)
+BufferedImage outputPhoto = kernel.sharpen(BufferedImage inputPhoto, [String "grayscale"|"color"])
 ```
 
-![A very sharp fun crab hat](/images/sharpen.jpg)
+![A very sharp Botticelli painting](/images/sharpen.jpg)
 
 Discrete laplace approximation
 
 ```
-BufferedImage outputPhoto = kernel.laplace(BufferedImage inputPhoto)
+BufferedImage outputPhoto = kernel.laplace(BufferedImage inputPhoto, [String "grayscale"|"color"])
 ```
 
-![A kinda faded fun crab hat](/images/laplace.jpg)
+![A kinda faded Botticelli painting](/images/laplace.jpg)
 
 Emboss
 
 ```
-BufferedImage outputPhoto = kernel.emboss(BufferedImage inputPhoto)
+BufferedImage outputPhoto = kernel.emboss(BufferedImage inputPhoto, [String "grayscale"|"color"])
 ```
 
-![An embossed crab hat](/images/emboss.jpg)
+![An embossed Botticelli painting(/images/emboss.jpg)
 
 Roberts
 
 ```
-BufferedImage outputPhoto = kernel.roberts(BufferedImage inputPhoto)
+BufferedImage outputPhoto = kernel.roberts(BufferedImage inputPhoto, [String "grayscale"|"color"])
 ```
 
-![A differed edge detected crab hat](/images/roberts.jpg)
+![A differed edge detected Botticelli painting](/images/roberts.jpg)
 
 Prewitt
 
 ```
-BufferedImage outputPhoto = kernel.prewitt(BufferedImage inputPhoto)
+BufferedImage outputPhoto = kernel.prewitt(BufferedImage inputPhoto, [String "grayscale"|"color"])
 ```
 
-![Another edge detected crab hat](/images/prewitt.jpg)
+![Another edge detected Botticelli painting](/images/prewitt.jpg)
 
 Custom Kernel - This example is a 5x5 Gaussian blur. Scaling is handled by the class.
 
 ```
-BufferedImage outputPhoto = kernel.customKernel(BufferedImage inputPhoto, Array[Array[Double]])
+BufferedImage outputPhoto = kernel.customKernel(BufferedImage inputPhoto, Array[Array[Double]], [String "grayscale"|"color"])
 ```
 
-![A blurry crab hat](/images/gaussian.jpg)
+![A blurry Botticelli painting](/images/gaussian.jpg)
+
+Color - Each RGB channel is filtered independenetly. This example is a laplace transformation
+
+![A kinda faded Botticelli painting](/images/color.jpg)
