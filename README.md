@@ -76,6 +76,16 @@ BufferedImage outputPhoto = kernel.prewitt(BufferedImage inputPhoto, [String "gr
 
 ![Another edge detected Botticelli painting](/images/prewitt.jpg)
 
+Sobel
+
+```
+BufferedImage outputPhoto = kernel.sobel(BufferedImage inputPhoto, [String "grayscale"|"color"])
+```
+
+![Another edge detected Botticelli painting](/images/sobel.jpg)
+
+
+
 Custom Kernel - This example is a 5x5 Gaussian blur. Scaling is handled by the class.
 
 ```
