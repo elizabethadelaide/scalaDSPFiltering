@@ -58,7 +58,7 @@ Emboss
 BufferedImage outputPhoto = kernel.emboss(BufferedImage inputPhoto, [String "grayscale"|"color"])
 ```
 
-![An embossed Botticelli painting(/images/emboss.jpg)
+![An embossed Botticelli painting](/images/emboss.jpg)
 
 Roberts
 
