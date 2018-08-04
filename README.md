@@ -14,7 +14,7 @@ val k =  new kernel() //init kernel
 val out = k.edgedetection(photo) //run edgedetection on the input photo and output a new buffered image
 ```
 
-Corner detection uses Harris Stephens algorihm, usage:
+Corner detection uses Harris Stephens algorithm, usage:
 
 ```
 val photo = ImageIO.read(new File(myPhotoPath.concat("myImage.jpg"))) //image to process as BufferedImage
@@ -114,6 +114,18 @@ Color - Each RGB channel is filtered independently. This example is a laplace tr
 ![A kinda faded Botticelli painting](/images/color.jpg)
 
 ## Corner Detection
+
+```
+val fD = new featureDetection()
+
+Array[corner] corners = fD.harrisStephens(BufferedImage inPhoto, [Double K=0.14, Double RThreshold=120])
+
+Int x = corners[0].getX()
+Int y = corners[0].getY()
+Double R = corners[0].getR()
+
+BufferedImage outImage = fD.displayCorners(Array[corner] corners, BufferedImage inPhoto)
+```
 
 Feature detection algorithm calculates the tensor, M, of an image. 
 
