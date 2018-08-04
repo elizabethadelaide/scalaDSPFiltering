@@ -1,20 +1,35 @@
 # Image processing
 
+## Overview
+
 Image processing using convolution of basic kernels: box blurs, edge detection, sharpening, and laplace approximation. Uses Java AWT Buffered image.
 
-Contains a kernel class which is used for the processing, usage:
+Kernel class which is used for the processing, usage:
 
 ```
-val photo = ImageIO.read(new File(myPhotoPath.concat("funhat.jpg"))) //image to process as bufferedImage
+val photo = ImageIO.read(new File(myPhotoPath.concat("myImage.jpg"))) //image to process as BufferedImage
 
 val k =  new kernel() //init kernel
 
 val out = k.edgedetection(photo) //run edgedetection on the input photo and output a new buffered image
 ```
 
-Also contains an Image object for testing.
+Feature detection uses Harris Stephens algorihm, usage:
 
-# Example run
+```
+val photo = ImageIO.read(new File(myPhotoPath.concat("myImage.jpg"))) //image to process as BufferedImage
+
+val fD = new featureDetection() //init feature detection
+
+val corners = fD.harrisStephens(photo) //get array of object containing x, y and R of corners
+
+val out = fD.displayCorners(corners, photo) //get BufferedImage with corner pixels in red
+```
+
+
+Also contains an Image object which shows example usage, and a testing class for debugging feature detection class.
+
+## Kernel Convolution
 
 Input image
 
@@ -97,3 +112,9 @@ BufferedImage outputPhoto = kernel.customKernel(BufferedImage inputPhoto, Array[
 Color - Each RGB channel is filtered independently. This example is a laplace transformation
 
 ![A kinda faded Botticelli painting](/images/color.jpg)
+
+## Feature Detection
+
+Feature detection algorithm calculates the tensor, M, of an image. Partial spatial derivatives, I_x and I_y, are calculated using Sobel operators. The likelihood of a corner is determined by R.
+
+Currently the window function is a constant (1), however a Gaussian and Box filter will be implemented.
