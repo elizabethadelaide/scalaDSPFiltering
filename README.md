@@ -139,6 +139,8 @@ The trace is:
 
 ![Trace of M = M_11 - M_22 = lambda_1 plus lambda_2](/math/trace.jpg)
 
+For a large enough R, a corner is registered. Corners are returned in an array of corner objects, each containing an x coordinate, a y coordinate and the R value. The default R threshold is 120. Kappa can also be adjusted from its default value at 0.14.
+
 The outcome:
 
 ![A window with corners highlighted in red](/images/harrisStephens.jpg)
