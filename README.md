@@ -14,7 +14,7 @@ val k =  new kernel() //init kernel
 val out = k.edgedetection(photo) //run edgedetection on the input photo and output a new buffered image
 ```
 
-Feature detection uses Harris Stephens algorihm, usage:
+Corner detection uses Harris Stephens algorihm, usage:
 
 ```
 val photo = ImageIO.read(new File(myPhotoPath.concat("myImage.jpg"))) //image to process as BufferedImage
@@ -113,8 +113,33 @@ Color - Each RGB channel is filtered independently. This example is a laplace tr
 
 ![A kinda faded Botticelli painting](/images/color.jpg)
 
-## Feature Detection
+## Corner Detection
 
-Feature detection algorithm calculates the tensor, M, of an image. Partial spatial derivatives, I_x and I_y, are calculated using Sobel operators. The likelihood of a corner is determined by R.
+Feature detection algorithm calculates the tensor, M, of an image. 
 
-Currently the window function is a constant (1), however a Gaussian and Box filter will be implemented.
+![M = sum of the window function times the matrix of partial derivaties](/math/M.jpg)
+
+Currently the window function, w(x, y), is a constant (1), however a Gaussian and Box filter will be implemented.
+
+Partial spatial derivatives, I_x and I_y, are calculated using Sobel operators. For I_x:
+
+![I_x = Sobel operator convolved onto the input imaged](/math/I_x.jpg)
+
+The likelihood of a corner is determined by R, given by the formula:
+
+![R = determinant of M - kappa * square of the trace of M](/math/R.jpg)
+
+The determinant is:
+
+![Det of M = M_11 times M_22 - M_12 times M_21 = lambda_1 times Lambda_2](/math/det.jpg)
+
+Where lambda are the eigenvalues of M.
+
+The trace is:
+
+![Trace of M = M_11 - M_22 = lambda_1 plus lambda_2](/math/trace.jpg)
+
+The outcome:
+
+![A window with corners highlighted in red](/images/harrisStephens.jpg)
+
