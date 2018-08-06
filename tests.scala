@@ -8,6 +8,7 @@ import javax.imageio.ImageIO
 object tests extends App{
 
   val fD = new featureDetection()
+  val u = new utils()
 
   val myPhotoPath = "C:\\Users\\liz\\Documents\\Programs\\imageProcessing\\" //directory to process
   val photo = ImageIO.read(new File(myPhotoPath.concat("flowers.jpg"))) //image to process
@@ -19,17 +20,63 @@ object tests extends App{
   checkCrop()
   checkPartials()
   checkM()
+  //checkGaussian()
+  //timeGaussian(1000000)
+
+  //time gaussian operation
+  //return average time
+  def timeGaussian(n:Int):Long={
+    fD.NGauss = 100
+    val t0 = System.nanoTime()
+
+    //do n gaussian loops
+    for (i <- 0 until n){
+      val n = fD.getGaussian(i % 100)
+    }
+
+    val t1 = System.nanoTime()
+
+    val average = (t1 - t0) / n
+
+    printf("Total time of a Gaussian operation over %d loops is %d milliseconds\n", n, (t1-t0)/1000000)
+    printf("Average time of a Gaussian operation over %d loops is %d nanoseconds\n", n, average)
+
+    average
+  }
 
   //outputs a CSV file of M matrix
   def checkM():Int={
+
     //preprocess with gaussian
     var gray = fD.k.color2gray(photo) //smooth and gray scale
     gray = fD.crop(gray) //image needs to be square
 
-    val M = fD.getM(gray)
+    var t0 = System.currentTimeMillis()
+    var M = fD.getM(gray)
+    var t1 = System.currentTimeMillis()
 
-    val w = M(0)(0).length
-    val h = M(0)(0)(0).length
+    var w = M.getZSize()
+    var h = M.getWSize()
+
+    printf("An M matrix with flat window of %d by %d was processed in %d millseconds\n", w, h, t1-t0)
+
+    /*fD.setWindowFunction("Gaussian")
+
+    t0 = System.currentTimeMillis()
+    M = fD.getM(gray)
+    t1 = System.currentTimeMillis()
+
+    w = M(0)(0).length
+    h = M(0)(0)(0).length
+
+    printf("An M matrix with gaussian window of %d by %d was processed in %d millseconds\n", w, h, t1-t0)*/
+
+    //check if M actually did anything:
+    val max = M.getMax
+    if (max == 0){
+      println("The M matrix had no maxes, likely not working")
+    }
+
 
     val bw = new BufferedWriter(new FileWriter(new File(myTestPath.concat("M.csv"))))
 
@@ -40,10 +87,11 @@ object tests extends App{
 
     for (x <- 0 until w){
       for (y <- 0 until h){
-        val A = M(0)(0)(x)(y)
-        val B = M(0)(1)(x)(y)
-        val C = M(1)(0)(x)(y)
-        val D = M(1)(1)(x)(y)
+        val m = M.getMatrix(x, y)
+        val A = m(0)(0)
+        val B = m(0)(1)
+        val C = m(1)(0)
+        val D = m(1)(1)
         IX2(x)(y) = A
         IXIY(x)(y) = B
         IYIX(x)(y) = C
@@ -53,17 +101,38 @@ object tests extends App{
     }
     bw.close()
 
-    var out = fD.colorMap(IX2)
+    var out = u.colorMap(IX2)
     ImageIO.write(out, "jpg", new File(myTestPath.concat("Ix2.jpg")))
-    out = fD.colorMap(IXIY)
+    out = u.colorMap(IXIY)
     ImageIO.write(out, "jpg", new File(myTestPath.concat("IxIy.jpg")))
-    out = fD.colorMap(IYIX)
+    out = u.colorMap(IYIX)
     ImageIO.write(out, "jpg", new File(myTestPath.concat("IyIx.jpg")))
-    out = fD.colorMap(IY2)
+    out = u.colorMap(IY2)
     ImageIO.write(out, "jpg", new File(myTestPath.concat("Iy2.jpg")))
 
+    println("M written to to CSV, with images in testing folder")
 
     1
+  }
+
+  def checkGaussian():Int={
+    val n = 34
+    val N = 100
+    fD.setGaussSigma(0.2) //set different sigma
+    fD.NGauss = N.toDouble //set window size
+    val ans = 0.29357 //expected answer
+    val myAns = fD.getGaussian(n)
+
+    val error = Math.abs(ans - myAns)
+
+    if (error < 0.00001){
+      printf("Gaussian is working with error %f\n", error)
+      1
+    }
+    else{
+      printf("Gaussian is not working with error %f\n", error)
+      -1
+    }
   }
 
   def checkPartials():Int={
@@ -73,38 +142,38 @@ object tests extends App{
     val w = gray.getWidth
     val h = gray.getHeight
 
-    val xOut = new BufferedImage(w, h, BufferedImage.TYPE_BYTE_GRAY)
-    val yOut = new BufferedImage(w, h, BufferedImage.TYPE_BYTE_GRAY)
+    val xOut = u.colorMap(Ix)
+    val yOut = u.colorMap(Iy)
 
-    val xOutRaster = xOut.getRaster
-    val yOutRaster = yOut.getRaster
-
-    for (x <- 0 until w) {
-      for (y <- 0 until h) {
-        xOutRaster.setSample(x, y, 0, fD.k.mask(Ix(x)(y)))
-        yOutRaster.setSample(x, y, 0, fD.k.mask(Iy(x)(y)))
-      }
-    }
     ImageIO.write(xOut, "jpg", new File(myTestPath.concat("Ix.jpg")))
     ImageIO.write(yOut, "jpg", new File(myTestPath.concat("Iy.jpg")))
-
+    println("Partials written to testing folder")
     1
   }
 
   def checkCrop():Int={
     val out = fD.crop(photo)
     ImageIO.write(out, "jpg", new File(myTestPath.concat("cropped.jpg")))
-    1
+    if (out.getHeight == out.getWidth){
+      println("Crop set the height and width equal to each other, check testing folder")
+      1
+    }
+    else{
+      println("Crop is definitely not working")
+      -1
+    }
   }
 
   def checkTrace():Int={
-    val A = Array.ofDim[Double](2, 2)
+    val A = new fD.Tensor(2, 2, 1, 1)
     val Ans = 9
 
-    A(0) = Array(3, 8)
-    A(1) = Array(4, 6)
+    var pushReturn = A.push(0, 0, 3)
+    pushReturn = A.push(0, 0, 8)
+    pushReturn = A.push(0, 0, 4)
+    pushReturn = A.push(0, 0, 6)
 
-    val myAns = fD.getTrace(A)
+    val myAns = A.getTrace(0, 0)
 
     if (myAns == Ans){
       println("Trace is working")
@@ -117,13 +186,21 @@ object tests extends App{
   }
 
   def checkDeterminant():Int={
-    val A = Array.ofDim[Double](2, 2)
+    val A = new fD.Tensor(2, 2, 1, 1)
     val Ans = -14.0
 
-    A(0) = Array(3, 8)
-    A(1) = Array(4, 6)
+    //push one 2 x 2 array
+    var pushReturn = A.push(0, 0, 3)
+    pushReturn = A.push(0, 0, 8)
+    pushReturn = A.push(0, 0, 4)
+    pushReturn = A.push(0, 0, 6)
 
-    val myAns = fD.getDet(A)
+    /*printf("Push returns %d, expected is 4\n", pushReturn)
+    pushReturn = A.push(0, 0, 3) //attempt to push another value
+    printf("Push returns %d, expected is 0\n", pushReturn)*/
+
+
+    val myAns = A.getDet(0, 0)
 
     if (myAns == Ans){
       println("Determinant is working")

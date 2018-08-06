@@ -1,22 +1,29 @@
 import java.awt.image.{BufferedImage, Raster}
 
-class featureDetection(){
+class featureDetection(inK:Double=0.14, inRThreshold:Double=120.0, inSigma:Double = 0.3){
   val k = new kernel()
+
+  var K = inK
+  var RThreshold = inRThreshold
+  var sigma = inSigma //adjustable gauss value
+  var NGauss = 0.0 //adjustable gauss size
+
+  var windowFunction = "Constant"
 
   //process a buffered image to get corners
   //K is empircally found, and is generally between 0.4 and 0.6 depending on application
   //finds:
   //R = det(M) - K*trace(M)^2
   //derivation can be found here: https://docs.opencv.org/2.4/doc/tutorials/features2d/trackingmotion/harris_detector/harris_detector.html
-  def harrisStephens(in:BufferedImage, K:Double=0.14, RThreshold:Double=120.0):Array[corner]={
+  def harrisStephens(in:BufferedImage):Array[corner]={
 
     var gray = k.color2gray(in) //apply gray scale
     gray = crop(gray) //image needs to be square for matrix operations, cropping is simplest and probably worst solution
 
-    val M = getM(gray)
-
     val w = gray.getWidth
     val h = gray.getHeight
+
+    val M = getM(gray)
 
     val matrix = Array.ofDim[Double](2, 2)
 
@@ -30,10 +37,8 @@ class featureDetection(){
     //find R = det(M) - K*trace(M)^2 for each point in the image
     for (x <- 0 until w) {
       for (y <- 0 until h) {
-        matrix(0) = Array(M(0)(0)(x)(y), M(0)(1)(x)(y))
-        matrix(1) = Array(M(1)(0)(x)(y), M(1)(1)(x)(y))
-        val determinant = getDet(matrix)
-        val trace = getTrace(matrix)
+        val determinant = M.getDet(x, y)
+        val trace = M.getTrace(x, y)
 
         val R = determinant - K * sqr(trace)
 
@@ -57,8 +62,22 @@ class featureDetection(){
     def getR():Double={R}
   }
 
+  //Get R array for some scaling purposes
+  //Not extremely efficient
+  def getRArray(thisArray:Array[corner]):Array[Double]={
+    val R = Array.ofDim[Double](thisArray.length)
+    for (i <- 0 until thisArray.length){
+      R(i) = thisArray(i).getR()
+    }
+    R
+  }
+
+
+
   //creates an RGB image with red highlighted corners
-  def displayCorners(corners:Array[corner], gray:BufferedImage): BufferedImage={
+  def displayCorners(corners:Array[corner], in:BufferedImage): BufferedImage={
+    val gray = k.color2gray(in) //make sure it's gray scale
+
     val w = gray.getWidth
     val h = gray.getHeight
 
@@ -76,33 +95,28 @@ class featureDetection(){
         out.setRGB(x, y, (R << 16) + (G << 8) + B)
       }
     }
+
+    //get R array to get min and max or R
+    val rArray = getRArray(corners)
+    val min = rArray.min
+    val max = rArray.max
+
     for (i <- 0 until corners.length){
       val x = corners(i).getX()
       val y = corners(i).getY()
-      //for (j <- x-5 until x+5){
-        //for (k <- y-20 until y+20){
-          //if (j > 0 && j < w && k > 0 && k < h){
-            out.setRGB(x, y, 255 << 16) //set to red
-          //}
-        //}
-      //}
+
+      //set color to represent intensity of cornerness
+      val Rvalue = 10*(255.0*(corners(i).getR() - min) / (max - min)).toInt
+
+      out.setRGB(x, y, (k.mask(Rvalue) << 16) + k.mask(255-Rvalue)) //set to red
+
     }
     out
   }
 
-  //determinant of 2x2 matrx
-  def getDet(m:Array[Array[Double]]):Double={
-    m(0)(0)*m(1)(1) - m(0)(1)*m(1)(0)
-  }
-
-  //trace of 2x2 matrix
-  def getTrace(m:Array[Array[Double]]):Double={
-    m(0)(0) + m(1)(1)
-  }
-
   //M is a tensor which describes the directional changes of the image
   //Will clean up this object type...
-  def getM(in:BufferedImage):Array[Array[Array[Array[Double]]]]={
+  def getM(in:BufferedImage):Tensor={
     //get partial spatial derivatives
     val Ix = getIx(in)
     val Iy = getIy(in)
@@ -110,23 +124,129 @@ class featureDetection(){
     //get window function
     val w = in.getWidth
     val h = in.getHeight
-    val win = getW(w, h)
+
+    NGauss = w.toDouble //set Guass window size
 
     //could rewrite this as some type of object? not the prettiest
-    val M = Array.ofDim[Double](2, 2, w, h)
+    val M = new Tensor(2, 2, w, h)
 
     //M =
     //[ Ix^2 Ix*Iy ]
     //[ Iy*Ix Iy^2 ]
     //remember that with matrix multiplication, order matters
-    M(0)(0) = matrixMultiply(Ix, Ix)
-    M(0)(1) = matrixMultiply(Ix, Iy)
-    M(1)(0) = matrixMultiply(Iy, Ix)
-    M(1)(1) = matrixMultiply(Iy, Iy)
+    val Ix2 = matrixMultiply(Ix, Ix)
+    val IxIy = matrixMultiply(Ix, Iy)
+    val IyIx = matrixMultiply(Iy, Ix)
+    val Iy2 = matrixMultiply(Iy, Iy)
 
-    //TODO: add window function and sum here:
+    if (windowFunction == "Constant"){
+      M.push(Ix2)
+      M.push(IxIy)
+      M.push(IyIx)
+      M.push(Iy2)
+    }
+
+    //M = sum_x,y (w(x,y) *
+    //[ Ix^2 Ix*Iy ]
+    //[ Iy*Ix Iy^2 ]
+    //TODO: Check math for Guassian windows
+    //Is is supposed to simply center issues in center of image?
+    //If the window did do an operation centered on each pixel, that wouldn't be separable?
+    //That would be a convolution wouldn't it? hmm...
+    /*if (windowFunction == "Gaussian") {
+      var W = 0.0
+      for (x <- 0 until w) {
+        for (y <- 0 until h) {
+          //2D gaussian is a separable function
+          W = getGaussian(x) * getGaussian(y)
+          for ()
+          M(0)(0)(x)(y) += W*Ix2
+          M(0)(1)(x)(y) += W*IxIy
+          M(1)(0)(x)(y) += W*IyIx
+          M(1)(1)(x)(y) += W*Iy2
+        }
+      }
+    }*/
 
     M
+  }
+
+  //Tensor class
+  //Starting with a simple 2x2 Matrix
+  //TODO: This can be moved to its own class and generalized for more tensors
+  class Tensor(XSize:Int, YSize:Int, ZSize:Int, WSize:Int){
+
+    val M = Array.ofDim[Double](XSize, YSize, ZSize, WSize)
+    var counter = 0
+
+    //push an array
+    def push(newValue: Array[Array[Double]]):Int={
+      //check dimensions
+      if (newValue.length == ZSize && newValue(0).length == WSize){
+        if (counter < XSize*YSize){
+          val x = counter % XSize
+          val y = (counter - x) / XSize
+          M(x)(y) = newValue
+          counter += 1
+          counter
+        }
+        else {
+          0 //tensor is full
+        }
+      }
+      else{
+        -1 //invalid size array
+      }
+    }
+
+    //push a value to a coordinate
+    def push(a:Int, b:Int, value:Double):Int={
+      if (a < ZSize && b < WSize){
+        if (counter < XSize*YSize){
+          val x = counter % XSize
+          val y = (counter - x) / XSize
+          M(x)(y)(a)(b) = value
+          counter += 1
+          counter
+        }
+        else{
+          0 //tensor full
+        }
+      }
+      else{
+        -1
+      }
+    }
+
+    //determinant of 2x2 matrix
+    //TODO: expand to general case
+    def getDet(x:Int, y:Int):Double={
+      M(0)(0)(x)(y)*M(1)(1)(x)(y) - M(0)(1)(x)(y)*M(1)(0)(x)(y)
+    }
+    //trace of 2x2 matrix
+    //TODO: expand to general case
+    def getTrace(x:Int, y:Int):Double={
+      M(0)(0)(x)(y) + M(1)(1)(x)(y)
+    }
+
+    /***********Some utils*********************/
+    def getXSize():Int={XSize}
+    def getYSize():Int={YSize}
+    def getZSize():Int={ZSize}
+    def getWSize():Int={WSize}
+
+    def getMatrix(z:Int, w:Int): Array[Array[Double]] ={
+      val out = Array.ofDim[Double](WSize, ZSize)
+      if (z < ZSize && w < WSize){
+        for (a <- 0 until XSize)
+          for (b <- 0 until YSize)
+            out(w)(z) = M(a)(b)(z)(w)
+      }
+      out
+    }
+
+    //helpful for quickly checking it the tensor is empty
+    def getMax():Double={M.flatten.flatten.flatten.max}
   }
 
   //matrix multiplication utility
@@ -150,9 +270,7 @@ class featureDetection(){
         for (j <- 0 until Bh) {
           //do a sum:
           for (k <- 0 until Ah) {
-            val Avalue = A(i)(k)
-            val Bvalue = B(k)(j)
-            out(i)(j) += Avalue * Bvalue
+            out(i)(j) += A(i)(k) * B(k)(j)
           }
         }
       }
@@ -186,18 +304,6 @@ class featureDetection(){
     convolve(in, ky)
   }
 
-  def getW(w:Int, h:Int):Array[Array[Double]]={
-    val window = Array.ofDim[Double](w, h)
-    //constant window:
-    //will add gaussian and box later
-    for (x <- 0 until w){
-      for (y <- 0 until h){
-        window(x)(y) = 1.0
-      }
-    }
-    window
-  }
-
   //quick square function:
   def sqr(in:Double):Double={in*in}
 
@@ -227,11 +333,14 @@ class featureDetection(){
   //for more advanced filters, convolution should be done with doubles
   //this prevents overflow errors and rounding errors
   //I don't necessarily like having so many copies of the convolution alogrithm however...
-  def convolve(in: BufferedImage, kernel: Array[Array[Double]], kw:Int=3, kh:Int=3): Array[Array[Double]]={
+  def convolve(in: BufferedImage, kernel: Array[Array[Double]]): Array[Array[Double]]={
     //used for image detection
 
     val w = in.getWidth
     val h = in.getHeight
+
+    val kw = kernel.length
+    val kh = kernel(0).length
 
     //output array
     val out = Array.ofDim[Double](w, h)
@@ -247,7 +356,7 @@ class featureDetection(){
             val d = y + b - (kh - 1) / 2
             //make sure everything is in bounds:
             if (!(c < 0 || c >= w || d < 0 || d >= h)) {
-              val data = (rasterIn.getSample(c, d, 0) & 0xff) / 255.0 //normalize to 1
+              val data = rasterIn.getSample(c, d, 0) / 255.0 //normalize to 1
               val coefficient = kernel(a)(b)
               accum += coefficient*data
             }
@@ -267,26 +376,49 @@ class featureDetection(){
 
   }
 
-  //scale a 2D array to RGB space
-  //for visualizing 2D functions
-  //3 byte space = 0 - 765
-  def colorMap(in: Array[Array[Double]]):BufferedImage={
+  //get one dimensional gaussian window
+  //(2D Gaussian is a separable function)
+  def getGaussian(nInt: Int): Double={
+    val n = nInt.toDouble
 
-    val min = in.flatten.min
-    val max = in.flatten.max
+    //w(n) =
+    //split up gaussian for readability
+    val num = n - (NGauss-1.0)/2.0
+    val den = (sigma*(NGauss-1.0))/2.0
 
-    val w = in.length
-    val h = in(0).length
-
-    val out = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB)
-
-    for (x <- 0 until w){
-      for (y <- 0 until h){
-        out.setRGB(x, y, (765.0*(in(x)(y)-min)/(max-min)).toInt)
-      }
-    }
-    out
+    scala.math.exp(-0.5*sqr(num/den))
   }
 
+  /**********Class setters*******************/
+  //change window function
+  def setWindowFunction(newWindowFunction:String):String={
+    if (newWindowFunction == "Constant"){
+      windowFunction = "Constant"
+    }
+    else if (newWindowFunction == "Gaussian"){
+      windowFunction = "Gaussian"
+    }
+    else{
+      printf("Invalid window function: %s", newWindowFunction)
+    }
+    windowFunction
+  }
 
+  //for setting sigma
+  def setGaussSigma(newSigma:Double): Double ={
+    sigma = newSigma
+    sigma
+  }
+
+  //set K value for harris stephens
+  def setK(newK:Double):Double={
+    K = newK
+    K
+  }
+
+  //set R threshold for harris stephens
+  def setRThreshold(newR:Double):Double={
+    RThreshold = newR
+    RThreshold
+  }
 }

@@ -102,6 +102,21 @@ class kernel(){
     convolve(in, colorMode)
   }
 
+  def gaussian(in: BufferedImage, colorMode:String="grayscale"): BufferedImage={
+    kw = 5
+    kh = 5
+
+    k = Array.ofDim[Double](kw, kh)
+
+    k(0) = Array(1.0, 4.0, 6.0, 4.0, 1.0)
+    k(1) = Array(4.0, 16.0, 24.0, 16.0, 4.0)
+    k(2) = Array(6.0, 24.0, 36.0, 24.0, 6.0)
+    k(3) = k(1)
+    k(4) = k(0)
+
+    convolve(in, colorMode)
+  }
+
   def roberts(in: BufferedImage, colorMode:String="grayscale"): BufferedImage= {
     kw = 2
     kh = 2
@@ -169,15 +184,9 @@ class kernel(){
 
   def getMagnitude(A: BufferedImage, B: BufferedImage, colorMode: String="grayscale"): BufferedImage={
     if (colorMode == "grayscale"){
-      var grayA:BufferedImage = A
-      var grayB:BufferedImage = B
+      val grayA = color2gray(A)
+      val grayB = color2gray(B)
       //if it's a colored image (assume it's RGB if it has 3 components
-      if (A.getColorModel().getNumColorComponents() == 3){
-        grayA = color2gray(A)
-      }
-      if (B.getColorModel().getNumColorComponents() == 3){
-        grayB = color2gray(B)
-      }
       getMagnitudeGray(grayA, grayB)
     }
     else if(colorMode == "color"){
@@ -194,7 +203,7 @@ class kernel(){
     val h = A.getHeight()
 
     val out = new BufferedImage(w, h, BufferedImage.TYPE_BYTE_GRAY)
-    val rasterOut = out.getRaster() //writable raster out
+    val rasterOut = out.getRaster //writable raster out
     val rasterA = A.getData() //readable rasters In
     val rasterB = B.getData()
 
@@ -256,15 +265,13 @@ class kernel(){
   //quick square function:
   def sqr(in:Int):Double={in*in}
 
+  def sqr(in:Double):Double=(in*in)
+
 
 
   def convolve(in: BufferedImage, colorMode: String = "grayscale"): BufferedImage={
     if (colorMode == "grayscale"){
-      var gray:BufferedImage = in
-      //if it's a colored image (assume it's RGB if it has 3 components
-      if (in.getColorModel().getNumColorComponents() == 3){
-        gray = color2gray(in)
-      }
+      val gray = color2gray(in)
       convolveGray(gray)
     }
     else if(colorMode == "color"){
@@ -278,15 +285,21 @@ class kernel(){
 
   def color2gray(in: BufferedImage): BufferedImage={
     try {
-      val w = in.getWidth
-      val h = in.getHeight
+      if (in.getColorModel.getNumColorComponents == 3) {
 
-      val out = new BufferedImage(w, h, BufferedImage.TYPE_BYTE_GRAY)
+        val w = in.getWidth
+        val h = in.getHeight
 
-      //color convert op seems to be fastest option
-      val op = new ColorConvertOp(in.getColorModel().getColorSpace(), out.getColorModel().getColorSpace(), null)
-      op.filter(in, out) //filter input image to output colorspace
-      out
+        val out = new BufferedImage(w, h, BufferedImage.TYPE_BYTE_GRAY)
+
+        //color convert op seems to be fastest option
+        val op = new ColorConvertOp(in.getColorModel.getColorSpace, out.getColorModel.getColorSpace, null)
+        op.filter(in, out) //filter input image to output colorspace
+        out
+      }
+      else {
+        in
+      }
     }
     catch{
       case e: //handle errors
@@ -296,14 +309,14 @@ class kernel(){
   }
 
   def convolveGray(in: BufferedImage): BufferedImage={
-    //used for imaage detection
+    //used for image detection
 
     val w = in.getWidth
     val h = in.getHeight
 
     //output image
     val out = new BufferedImage(w, h, BufferedImage.TYPE_BYTE_GRAY)
-    val rasterOut = out.getRaster() //writable raster
+    val rasterOut = out.getRaster //writable raster
     val rasterIn = in.getData() //use readable raster to get data at each point of image
     //convolution algorithm
     for (x <- 0 until w) {
