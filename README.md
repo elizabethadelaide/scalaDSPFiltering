@@ -131,7 +131,7 @@ Feature detection algorithm calculates the tensor, M, of an image.
 
 ![M = sum of the window function times the matrix of partial derivaties](/math/M.jpg)
 
-Currently the window function, w(x, y), is a constant (1), however a Gaussian and Box filter will be implemented.
+Currently the window function, w(x, y), is a constant (1), however a Gaussian and Box  window implemented.
 
 Partial spatial derivatives, I_x and I_y, are calculated using Sobel operators. For I_x:
 
