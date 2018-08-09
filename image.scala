@@ -13,10 +13,6 @@ object image extends App{
 
   val fD = new featureDetection()
 
-  var out = fD.k.sharpen(photo, "color")
-  ImageIO.write(out, "png", new File(myPhotoPath.concat("schizoOut.png")))
-
-
   runKernel()
 
   runFeatureDetection()
@@ -27,7 +23,7 @@ object image extends App{
     val featurePath = myPhotoPath.concat("featureDetection\\")
 
     //try gaussian window function
-    fD.setWindowFunction("Gaussian")
+    //fD.setWindowFunction("Gaussian")
 
     val corners = fD.harrisStephens(photo)
     //ImageIO.write(out, "jpg", new File(featurePath.concat("harrisStephens.jpg")))

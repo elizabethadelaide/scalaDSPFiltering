@@ -102,17 +102,26 @@ class kernel(){
     convolve(in, colorMode)
   }
 
-  def gaussian(in: BufferedImage, colorMode:String="grayscale"): BufferedImage={
-    kw = 5
-    kh = 5
+  def gaussian(in: BufferedImage, colorMode:String="grayscale", size:Int = 5, sigma:Double = 1.4): BufferedImage={
+    kw = size
+    kh = size
 
     k = Array.ofDim[Double](kw, kh)
 
-    k(0) = Array(1.0, 4.0, 6.0, 4.0, 1.0)
-    k(1) = Array(4.0, 16.0, 24.0, 16.0, 4.0)
-    k(2) = Array(6.0, 24.0, 36.0, 24.0, 6.0)
-    k(3) = k(1)
-    k(4) = k(0)
+    val K = (size - 1)/2
+
+    var i = 0.0
+    var j = 0.0
+    var scale = 0.0
+    for (x <- 0 until size){
+      for (y <- 0 until size){
+        i = x + 1.0
+        j = y + 1.0
+        //formula for each matri
+        k(x)(y) = scala.math.exp(-(sqr(i - K+1) + sqr(j - sqr(K+1)))/(2*sqr(sigma)))
+        scale += k(x)(y)
+      }
+    }
 
     convolve(in, colorMode)
   }

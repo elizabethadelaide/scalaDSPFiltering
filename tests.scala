@@ -25,7 +25,7 @@ object tests extends App{
 
   //time gaussian operation
   //return average time
-  def timeGaussian(n:Int):Long={
+  /*def timeGaussian(n:Int):Long={
     fD.NGauss = 100
     val t0 = System.nanoTime()
 
@@ -42,7 +42,7 @@ object tests extends App{
     printf("Average time of a Gaussian operation over %d loops is %d nanoseconds\n", n, average)
 
     average
-  }
+  }*/
 
   //outputs a CSV file of M matrix
   def checkM():Int={
@@ -55,21 +55,21 @@ object tests extends App{
     var M = fD.getM(gray)
     var t1 = System.currentTimeMillis()
 
-    var w = M.getZSize()
-    var h = M.getWSize()
+    var w = M.getZSize
+    var h = M.getWSize
 
     printf("An M matrix with flat window of %d by %d was processed in %d millseconds\n", w, h, t1-t0)
 
-    /*fD.setWindowFunction("Gaussian")
+    fD.setWindowFunction("Gaussian")
 
     t0 = System.currentTimeMillis()
     M = fD.getM(gray)
     t1 = System.currentTimeMillis()
 
-    w = M(0)(0).length
-    h = M(0)(0)(0).length
+    w = M.getZSize
+    h = M.getWSize
 
-    printf("An M matrix with gaussian window of %d by %d was processed in %d millseconds\n", w, h, t1-t0)*/
+    printf("An M matrix with gaussian window of %d by %d was processed in %d millseconds\n", w, h, t1-t0)
 
     //check if M actually did anything:
     val max = M.getMax
@@ -115,7 +115,7 @@ object tests extends App{
     1
   }
 
-  def checkGaussian():Int={
+  /*def checkGaussian():Int={
     val n = 34
     val N = 100
     fD.setGaussSigma(0.2) //set different sigma
@@ -133,7 +133,7 @@ object tests extends App{
       printf("Gaussian is not working with error %f\n", error)
       -1
     }
-  }
+  }*/
 
   def checkPartials():Int={
     val gray = fD.k.color2gray(photo)

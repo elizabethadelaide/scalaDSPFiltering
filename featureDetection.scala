@@ -1,12 +1,12 @@
 import java.awt.image.{BufferedImage, Raster}
 
-class featureDetection(inK:Double=0.14, inRThreshold:Double=120.0, inSigma:Double = 0.3){
+class featureDetection(inK:Double=0.14, inRThreshold:Double=120.0, inSigma:Double = 1.4){
   val k = new kernel()
 
   var K = inK
   var RThreshold = inRThreshold
   var sigma = inSigma //adjustable gauss value
-  var NGauss = 0.0 //adjustable gauss size
+  var NGauss = 3 //adjustable gauss size
 
   var windowFunction = "Constant"
 
@@ -57,22 +57,20 @@ class featureDetection(inK:Double=0.14, inRThreshold:Double=120.0, inSigma:Doubl
 
   //class contains information about detected corners
   class corner(x:Int, y:Int, R:Double){
-    def getX():Int={x}
-    def getY():Int={y}
-    def getR():Double={R}
+    def getX:Int=x
+    def getY:Int=y
+    def getR:Double=R
   }
 
   //Get R array for some scaling purposes
   //Not extremely efficient
   def getRArray(thisArray:Array[corner]):Array[Double]={
     val R = Array.ofDim[Double](thisArray.length)
-    for (i <- 0 until thisArray.length){
-      R(i) = thisArray(i).getR()
+    for (i <- thisArray.indices){
+      R(i) = thisArray(i).getR
     }
     R
   }
-
-
 
   //creates an RGB image with red highlighted corners
   def displayCorners(corners:Array[corner], in:BufferedImage): BufferedImage={
@@ -102,11 +100,11 @@ class featureDetection(inK:Double=0.14, inRThreshold:Double=120.0, inSigma:Doubl
     val max = rArray.max
 
     for (i <- 0 until corners.length){
-      val x = corners(i).getX()
-      val y = corners(i).getY()
+      val x = corners(i).getX
+      val y = corners(i).getY
 
       //set color to represent intensity of cornerness
-      val Rvalue = 10*(255.0*(corners(i).getR() - min) / (max - min)).toInt
+      val Rvalue = 10*(255.0*(corners(i).getR - min) / (max - min)).toInt
 
       out.setRGB(x, y, (k.mask(Rvalue) << 16) + k.mask(255-Rvalue)) //set to red
 
@@ -124,8 +122,6 @@ class featureDetection(inK:Double=0.14, inRThreshold:Double=120.0, inSigma:Doubl
     //get window function
     val w = in.getWidth
     val h = in.getHeight
-
-    NGauss = w.toDouble //set Guass window size
 
     //could rewrite this as some type of object? not the prettiest
     val M = new Tensor(2, 2, w, h)
@@ -145,28 +141,18 @@ class featureDetection(inK:Double=0.14, inRThreshold:Double=120.0, inSigma:Doubl
       M.push(IyIx)
       M.push(Iy2)
     }
+    else if (windowFunction == "Gaussian"){
+      M.push(gaussian(Ix2))
+      M.push(gaussian(IxIy))
+      M.push(gaussian(IyIx))
+      M.push(gaussian(Iy2))
+    }
 
     //M = sum_x,y (w(x,y) *
     //[ Ix^2 Ix*Iy ]
     //[ Iy*Ix Iy^2 ]
     //TODO: Check math for Guassian windows
-    //Is is supposed to simply center issues in center of image?
-    //If the window did do an operation centered on each pixel, that wouldn't be separable?
-    //That would be a convolution wouldn't it? hmm...
-    /*if (windowFunction == "Gaussian") {
-      var W = 0.0
-      for (x <- 0 until w) {
-        for (y <- 0 until h) {
-          //2D gaussian is a separable function
-          W = getGaussian(x) * getGaussian(y)
-          for ()
-          M(0)(0)(x)(y) += W*Ix2
-          M(0)(1)(x)(y) += W*IxIy
-          M(1)(0)(x)(y) += W*IyIx
-          M(1)(1)(x)(y) += W*Iy2
-        }
-      }
-    }*/
+
 
     M
   }
@@ -230,10 +216,10 @@ class featureDetection(inK:Double=0.14, inRThreshold:Double=120.0, inSigma:Doubl
     }
 
     /***********Some utils*********************/
-    def getXSize():Int={XSize}
-    def getYSize():Int={YSize}
-    def getZSize():Int={ZSize}
-    def getWSize():Int={WSize}
+    def getXSize:Int=XSize
+    def getYSize:Int=YSize
+    def getZSize:Int=ZSize
+    def getWSize:Int=WSize
 
     def getMatrix(z:Int, w:Int): Array[Array[Double]] ={
       val out = Array.ofDim[Double](WSize, ZSize)
@@ -246,7 +232,7 @@ class featureDetection(inK:Double=0.14, inRThreshold:Double=120.0, inSigma:Doubl
     }
 
     //helpful for quickly checking it the tensor is empty
-    def getMax():Double={M.flatten.flatten.flatten.max}
+    def getMax:Double={M.flatten.flatten.flatten.max}
   }
 
   //matrix multiplication utility
@@ -289,7 +275,7 @@ class featureDetection(inK:Double=0.14, inRThreshold:Double=120.0, inSigma:Doubl
     kx(1) = Array(2.0, 0.0, -2.0)
     kx(2) = Array(1.0, 0.0, -1.0)
 
-    convolve(in, kx)
+    convolve(in, kx, 1)
   }
 
   //do a separable operator to get Iy
@@ -301,7 +287,32 @@ class featureDetection(inK:Double=0.14, inRThreshold:Double=120.0, inSigma:Doubl
     ky(1) = Array(0.0, 0.0, 0.0)
     ky(2) = Array(-1.0, -2.0, -1.0)
 
-    convolve(in, ky)
+    convolve(in, ky, 1)
+  }
+
+  //convolve arrays to do a gaussian convolve
+  def gaussian(in: Array[Array[Double]]): Array[Array[Double]]={
+
+    val size= NGauss
+
+    val kg = Array.ofDim[Double](size, size)
+
+    val K = (size - 1)/2
+
+    var i = 0.0
+    var j = 0.0
+    var scale = 0.0
+    for (x <- 0 until size){
+      for (y <- 0 until size){
+        i = x + 1.0
+        j = y + 1.0
+        //formula for each matrix
+        kg(x)(y) = scala.math.exp(-(sqr(i - K+1) + sqr(j - sqr(K+1)))/(2*sqr(sigma)))
+        scale += kg(x)(y)
+      }
+    }
+
+    convolve(in, kg, scale)
   }
 
   //quick square function:
@@ -333,7 +344,7 @@ class featureDetection(inK:Double=0.14, inRThreshold:Double=120.0, inSigma:Doubl
   //for more advanced filters, convolution should be done with doubles
   //this prevents overflow errors and rounding errors
   //I don't necessarily like having so many copies of the convolution alogrithm however...
-  def convolve(in: BufferedImage, kernel: Array[Array[Double]]): Array[Array[Double]]={
+  def convolve(in: BufferedImage, kernel: Array[Array[Double]], scale:Double): Array[Array[Double]]={
     //used for image detection
 
     val w = in.getWidth
@@ -368,7 +379,7 @@ class featureDetection(inK:Double=0.14, inRThreshold:Double=120.0, inSigma:Doubl
           }
         }
         //set output:
-        out(x)(y) = accum
+        out(x)(y) = accum / scale
       }
     }
     //return convolved image
@@ -376,17 +387,49 @@ class featureDetection(inK:Double=0.14, inRThreshold:Double=120.0, inSigma:Doubl
 
   }
 
-  //get one dimensional gaussian window
-  //(2D Gaussian is a separable function)
-  def getGaussian(nInt: Int): Double={
-    val n = nInt.toDouble
+  //for more advanced filters, convolution should be done with doubles
+  //this prevents overflow errors and rounding errors
+  //I don't necessarily like having so many copies of the convolution alogrithm however...
+  def convolve(in: Array[Array[Double]], kernel: Array[Array[Double]], scale: Double): Array[Array[Double]]={
+    //used for image detection
 
-    //w(n) =
-    //split up gaussian for readability
-    val num = n - (NGauss-1.0)/2.0
-    val den = (sigma*(NGauss-1.0))/2.0
+    val w = in.length
+    val h = in(0).length
 
-    scala.math.exp(-0.5*sqr(num/den))
+    val kw = kernel.length
+    val kh = kernel(0).length
+
+    //output array
+    val out = Array.ofDim[Double](w, h)
+
+    //convolution algorithm
+    for (x <- 0 until w) {
+      for (y <- 0 until h) {
+        var accum = 0.0
+        for (a <- 0 until kw) {
+          for (b <- 0 until kh) {
+            val c = x + a - (kw - 1) / 2 //corresponding image coordinates
+            val d = y + b - (kh - 1) / 2
+            //make sure everything is in bounds:
+            if (!(c < 0 || c >= w || d < 0 || d >= h)) {
+              val data = in(c)(d) //normalize to 1
+              val coefficient = kernel(a)(b)
+              accum += coefficient*data
+            }
+            /*
+            else{
+              //could do out of bound stuff here or wrapping...
+            }
+             */
+          }
+        }
+        //set output:
+        out(x)(y) = accum / scale
+      }
+    }
+    //return convolved image
+    out
+
   }
 
   /**********Class setters*******************/
@@ -421,4 +464,67 @@ class featureDetection(inK:Double=0.14, inRThreshold:Double=120.0, inSigma:Doubl
     RThreshold = newR
     RThreshold
   }
+
+  /*****************Canny Edge detection******************/
+  /*def getCanny(in:BufferedImage): BufferedImage ={
+    val filtered = k.gaussian(in) //preprocess
+
+    val Gx = getIx(filtered)
+    val Gy = getIy(filtered)
+
+    val w = in.getWidth
+    val h = in.getHeight
+
+    //magnitude
+    val G = Array.ofDim[Double](w, h)
+    //gradient
+    val Gradient = Array.ofDim[Double](w, h)
+
+    for (x <- 0 until w){
+      for (y <- 0 until h){
+        G(x)(y) = hypot(Gx(x)(y), Gy(x)(y))
+        Gradient(x)(y) = atan2(Gy(x)(y), Gx(x)(y))
+      }
+    }
+
+    //non maximum suppression
+    //as a edge thinning technique
+    for (x <- 0 until w){
+      for (y <- 0 until h){
+        //cases:
+        val grad = Gradient(x)(y)
+        //closest to zero
+        val angleNum = angleRound(grad, 4)
+        //could use switch but seems cleaner with if statements
+        if (angleNum == 0){ //east west
+
+        }
+      }
+    }
+
+  }
+
+  //get the closest angle to a number
+  //i.e. PI/8 -> 0
+  //7*PI/4 -> 0
+  def angleRound(in: Double, quantize: Int): Int={
+    //maybe easiest is just getting the numbers to return the actual value
+    Math.round(in / (2*Math.PI)) % quantize
+  }
+
+  def pointCompare(G:Array[Array[Double]], x1:Int, y1:Int, x2:Int, y2:Int, x3:Int, y3:Int, w:Int, h:Int):Double={
+
+    if (x2 > 0 && x2 < w &&
+      x3 > 0 && x3 < w &&
+      y2 > 0 && y2 < h &&
+      y3 > 0 && y3 < h){
+    }
+
+  }
+
+  //for gradient calculation
+  def atan2(y: Double, x: Double): Double = scala.math.atan2(y, x)
+
+  //for higher precision hypotenuse function
+  def hypot(x: Double, y: Double): Double = java.lang.Math.hypot(x, y)*/
 }
