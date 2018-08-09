@@ -155,5 +155,5 @@ For a large enough R, a corner is registered. Corners are returned in an array o
 
 The outcome:
 
-![A window with corners highlighted in red](/images/harrisStephens.jpg)
+![A window with corners highlighted in red](/images/harrisStephens.png)
 
