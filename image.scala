@@ -7,7 +7,7 @@ import java.awt.image.BufferedImage
 object image extends App{
 
   val myPhotoPath = "C:\\Users\\liz\\Documents\\Programs\\imageProcessing\\" //directory to process
-  val photo = ImageIO.read(new File(myPhotoPath.concat("window.jpg"))) //image to process
+  val photo = ImageIO.read(new File(myPhotoPath.concat("flowers.jpg"))) //image to process
 
   printf("Photo size is %d x %d\n", photo.getWidth, photo.getHeight)
 
@@ -30,6 +30,12 @@ object image extends App{
 
     val out = fD.displayCorners(corners, photo)
     ImageIO.write(out, "png", new File(featurePath.concat("harrisStephens.png")))
+
+    fD.setWindowFunction("Gaussian")
+
+    val smoothedCorners = fD.harrisStephens(photo)
+
+    ImageIO.write(out, "png", new File(featurePath.concat("gaussianWindow.png")))
 
     1
   }

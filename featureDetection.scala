@@ -1,12 +1,14 @@
 import java.awt.image.{BufferedImage, Raster}
 
-class featureDetection(inK:Double=0.14, inRThreshold:Double=120.0, inSigma:Double = 1.4){
+//Feature detection class
+
+class featureDetection(inK:Double=0.14, inRThreshold:Double=120.0, inSigma:Double = 1.4, inNGauss:Int = 3){
   val k = new kernel()
 
   var K = inK
   var RThreshold = inRThreshold
   var sigma = inSigma //adjustable gauss value
-  var NGauss = 3 //adjustable gauss size
+  var NGauss = inNGauss //adjustable gauss size
 
   var windowFunction = "Constant"
 
