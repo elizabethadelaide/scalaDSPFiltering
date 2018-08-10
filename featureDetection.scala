@@ -2,7 +2,7 @@ import java.awt.image.{BufferedImage, Raster}
 
 //Feature detection class
 
-class featureDetection(inK:Double=0.14, inRThreshold:Double=120.0, inSigma:Double = 1.4, inNGauss:Int = 3){
+class featureDetection(inK:Double=0.14, inRThreshold:Double=120.0, inWindowFunction:String="Constant", inSigma:Double = 1.4, inNGauss:Int = 3){
   val k = new kernel()
 
   var K = inK
@@ -10,10 +10,10 @@ class featureDetection(inK:Double=0.14, inRThreshold:Double=120.0, inSigma:Doubl
   var sigma = inSigma //adjustable gauss value
   var NGauss = inNGauss //adjustable gauss size
 
-  var windowFunction = "Constant"
+  var windowFunction = inWindowFunction
 
   //process a buffered image to get corners
-  //K is empircally found, and is generally between 0.4 and 0.6 depending on application
+  //K is empircally found, and is generally between 0.04 and 0.14 depending on application
   //finds:
   //R = det(M) - K*trace(M)^2
   //derivation can be found here: https://docs.opencv.org/2.4/doc/tutorials/features2d/trackingmotion/harris_detector/harris_detector.html
@@ -121,16 +121,17 @@ class featureDetection(inK:Double=0.14, inRThreshold:Double=120.0, inSigma:Doubl
     val Ix = getIx(in)
     val Iy = getIy(in)
 
-    //get window function
+    //width/height of input image
     val w = in.getWidth
     val h = in.getHeight
 
-    //could rewrite this as some type of object? not the prettiest
+    //generate tensor
+    //2x2 each containing a wxh matrix
     val M = new Tensor(2, 2, w, h)
 
-    //M =
+    //M = sum(w(x, y) *
     //[ Ix^2 Ix*Iy ]
-    //[ Iy*Ix Iy^2 ]
+    //[ Iy*Ix Iy^2 ] )
     //remember that with matrix multiplication, order matters
     val Ix2 = matrixMultiply(Ix, Ix)
     val IxIy = matrixMultiply(Ix, Iy)
@@ -143,18 +144,13 @@ class featureDetection(inK:Double=0.14, inRThreshold:Double=120.0, inSigma:Doubl
       M.push(IyIx)
       M.push(Iy2)
     }
+    //approximate gaussian window with kernel convolution
     else if (windowFunction == "Gaussian"){
       M.push(gaussian(Ix2))
       M.push(gaussian(IxIy))
       M.push(gaussian(IyIx))
       M.push(gaussian(Iy2))
     }
-
-    //M = sum_x,y (w(x,y) *
-    //[ Ix^2 Ix*Iy ]
-    //[ Iy*Ix Iy^2 ]
-    //TODO: Check math for Guassian windows
-
 
     M
   }
